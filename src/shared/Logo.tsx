@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
-export const Logo = () => {
+export const Logo = React.memo(() => {
   return (
     <Link to="/" aria-label="Home">
       <motion.svg
@@ -10,22 +10,26 @@ export const Logo = () => {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-12 h-12 text-slate-900 dark:text-white"
-        
-        // 1. Define animation states for the container
         initial="initial"
         whileHover="hover"
         whileTap="tap"
-        
-        // 2. Define the variants (styles) for each state
+        animate="idle"
         variants={{
           initial: { 
             scale: 1, 
-            filter: "drop-shadow(0px 0px 0px rgba(0,0,0,0))" 
+            filter: "drop-shadow(0px 0px 0px rgba(99,102,241,0))" 
+          },
+          idle: {
+            filter: [
+              "drop-shadow(0px 0px 0px rgba(99,102,241,0))",
+              "drop-shadow(0px 0px 12px rgba(99,102,241,0.4))",
+              "drop-shadow(0px 0px 0px rgba(99,102,241,0))",
+            ],
+            transition: { duration: 3, repeat: Infinity, ease: "easeInOut" }
           },
           hover: { 
             scale: 1.1, 
-            // drop-shadow makes the SHAPE glow, not the bounding box
-            filter: "drop-shadow(0px 5px 10px rgba(0, 166, 255, 1))",
+            filter: "drop-shadow(0px 5px 15px rgba(99, 102, 241, 0.8))",
             transition: { type: "spring", stiffness: 400, damping: 17 }
           },
           tap: { 
@@ -41,12 +45,10 @@ export const Logo = () => {
           strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          
-          // 3. Sync the path animation with the parent's hover state
           variants={{
             initial: { pathLength: 1 },
             hover: { 
-              pathLength: [1, 0, 1], // Erase and redraw
+              pathLength: [1, 0, 1],
               transition: { duration: 1, ease: "easeInOut" }
             }
           }}
@@ -57,7 +59,7 @@ export const Logo = () => {
           x="50"
           y="62"
           textAnchor="middle"
-          fontFamily="sans-serif"
+          fontFamily="'Inter', sans-serif"
           fontSize="42"
           fontWeight="bold"
           fill="currentColor"
@@ -68,4 +70,6 @@ export const Logo = () => {
       </motion.svg>
     </Link>
   )
-}
+})
+
+Logo.displayName = 'Logo'

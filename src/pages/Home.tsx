@@ -1,64 +1,69 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ResumeCTA from '../shared/ResumeCTA'
+import InViewReveal from '../shared/InViewReveal'
 
-// --- HELPER: Spark Particle System ---
-const SparkParticles = () => {
+// --- HELPER: Spark Particle System (Optimized with RAF) ---
+const SparkParticles = React.memo(() => {
   const [sparks, setSparks] = useState<{ id: number; left: string; top: string }[]>([]);
+  const rafRef = useRef<number>(0);
+  const lastSpawnRef = useRef<number>(0);
 
   useEffect(() => {
-    // This interval syncs with the 1.5s rotation of the ring
-    const interval = setInterval(() => {
-      const now = Date.now();
-      // Calculate current angle (0 to 2PI) based on time
-      // 1500ms matches the rotation duration of the ring
-      const duration = 1500;
-      const progress = (now % duration) / duration;
-      const angle = progress * Math.PI * 2;
+    const spawnInterval = 80; // ms between spawns (reduced from 60)
+    const maxSparks = 10; // reduced from 15
 
-      // Calculate position on the circle (using percentages)
-      // -PI/2 aligns the start to the top (12 o'clock) to match CSS rotation
-      const radius = 50; // % radius
-      const left = 50 + radius * Math.cos(angle - Math.PI / 2) + '%';
-      const top = 50 + radius * Math.sin(angle - Math.PI / 2) + '%';
+    const tick = (time: number) => {
+      if (time - lastSpawnRef.current >= spawnInterval) {
+        lastSpawnRef.current = time;
+        
+        const duration = 1500;
+        const progress = (Date.now() % duration) / duration;
+        const angle = progress * Math.PI * 2;
+        const radius = 50;
+        const left = 50 + radius * Math.cos(angle - Math.PI / 2) + '%';
+        const top = 50 + radius * Math.sin(angle - Math.PI / 2) + '%';
 
-      const newSpark = { id: now, left, top };
+        setSparks(prev => [...prev.slice(-maxSparks), { id: Date.now(), left, top }]);
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
 
-      // Keep only recent sparks to prevent memory leaks
-      setSparks(prev => [...prev.slice(-15), newSpark]);
-    }, 60); // Spawn a spark every 60ms
-
-    return () => clearInterval(interval);
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
   return (
-    <>
-      <AnimatePresence>
-        {sparks.map(spark => (
-          <motion.div
-            key={spark.id}
-            initial={{ 
-              left: spark.left, 
-              top: spark.top, 
-              scale: 1, 
-              opacity: 1 
-            }}
-            animate={{ 
-              // Drop DOWN (gravity simulation) regardless of spark origin
-              top: `calc(${spark.top} + 100px)`, 
-              opacity: 0, 
-              scale: 0 
-            }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeIn" }}
-            style={{ position: 'absolute' }}
-            // Light Violet Color (#a78bfa is violet-400)
-            className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] shadow-[0_0_8px_#a78bfa] z-10"
-          />
-        ))}
-      </AnimatePresence>
-    </>
+    <AnimatePresence>
+      {sparks.map(spark => (
+        <motion.div
+          key={spark.id}
+          initial={{ left: spark.left, top: spark.top, scale: 1, opacity: 1 }}
+          animate={{ top: `calc(${spark.top} + 80px)`, opacity: 0, scale: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeIn" }}
+          style={{ position: 'absolute' }}
+          className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.6)] z-10"
+        />
+      ))}
+    </AnimatePresence>
   );
+});
+
+SparkParticles.displayName = 'SparkParticles';
+
+// --- Stagger container variants ---
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
 export default function Home() {
@@ -68,40 +73,51 @@ export default function Home() {
     <div className='flex items-center justify-center min-h-[80vh]'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-12 items-center w-full'>
         
-        {/* --- LEFT: Text Content --- */}
+        {/* --- LEFT: Text Content (Staggered Entrance) --- */}
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
           className='space-y-6'
         >
-          <h1 className='text-4xl md:text-7xl font-extrabold tracking-tight'>
-            Hi — I'm Manish<span className='text-indigo-600'>.</span>
-          </h1>
-          <p className='text-lg md:text-xl text-slate-600 dark:text-slate-300 leading-relaxed max-w-lg'>
+          <motion.div variants={fadeUp}>
+            <p className='text-sm font-semibold text-indigo-500 dark:text-indigo-400 tracking-widest uppercase mb-3'>
+              Software Developer
+            </p>
+          </motion.div>
+          
+          <motion.h1 variants={fadeUp} className='text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1]'>
+            Hi — I'm{' '}
+            <span className='gradient-text-animated'>Manish</span>
+            <span className='text-indigo-500'>.</span>
+          </motion.h1>
+          
+          <motion.p variants={fadeUp} className='text-lg md:text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg'>
             Software developer at IBM India Software Labs. Building full‑stack apps with React, Java, and cloud native tooling.
-          </p>
-          <div className='pt-4'>
+          </motion.p>
+          
+          <motion.div variants={fadeUp} className='pt-2'>
             <ResumeCTA />
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* --- RIGHT: Floating Image with Loader --- */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
           className='flex justify-center md:justify-end relative'
         >
-          {/* Static Background Blob */}
-          <div className="absolute top-0 right-0 -z-10 w-72 h-72 bg-indigo-200 dark:bg-indigo-900/30 rounded-full blur-3xl opacity-60 animate-pulse" />
+          {/* Multiple decorative blobs */}
+          <div className="absolute top-0 right-0 -z-10 w-72 h-72 bg-indigo-300/30 dark:bg-indigo-600/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-10 -z-10 w-56 h-56 bg-purple-300/20 dark:bg-purple-600/10 rounded-full blur-3xl" />
 
           <motion.div
-            animate={{ y: [-15, 15, -15] }}
+            animate={{ y: [-12, 12, -12] }}
             transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
             className="relative flex items-center justify-center"
           >
-            {/* 1. THE LOADER */}
+            {/* Image loader spinner */}
             <AnimatePresence mode="wait">
               {!isLoaded && (
                 <motion.div
@@ -110,44 +126,38 @@ export default function Home() {
                   exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.5 } }}
                   className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
                 >
-                  <div className="w-64 h-64 md:w-150 md:h-150 object-cover rounded-full border-4 border-white dark:border-slate-800 shadow-2xl relative z-10">
-                    
-                    {/* The Spinning Gradient Ring */}
+                  <div className="w-64 h-64 md:w-80 md:h-80 rounded-full relative">
                     <motion.div
                       className="absolute w-full h-full rounded-full"
                       style={{
-                        background: 'conic-gradient(from 0deg, transparent 0%, transparent 60%, #a78bfa 100%)', // Violet tail
+                        background: 'conic-gradient(from 0deg, transparent 0%, transparent 60%, #818cf8 100%)',
                         maskImage: 'radial-gradient(transparent 68%, black 70%)',
                         WebkitMaskImage: 'radial-gradient(transparent 68%, black 70%)',
                       }}
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                     />
-
-                    {/* The Spark Particles System */}
                     <div className="absolute inset-0 w-full h-full">
                        <SparkParticles />
                     </div>
-
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* 2. THE IMAGE */}
+            {/* The Profile Image */}
             <motion.img
               src="https://raw.githubusercontent.com/maniesh22/me/refs/heads/main/photos/IMG_0250.JPG"
               alt="Manish Prajapati"
               onLoad={() => setIsLoaded(true)}
-              className="w-64 h-64 md:w-150 md:h-150 object-cover rounded-full border-4 border-white dark:border-slate-800 shadow-2xl relative z-10"
-              
+              className="w-64 h-64 md:w-80 md:h-80 object-cover rounded-full border-4 border-white dark:border-slate-800 shadow-2xl relative z-10"
               initial={{ opacity: 0 }}
               animate={{
                 opacity: isLoaded ? 1 : 0,
                 filter: isLoaded ? [
-                  "drop-shadow(0 0 15px rgba(79, 70, 229, 0.3))", 
-                  "drop-shadow(0 0 30px rgba(79, 70, 229, 0.6))",
-                  "drop-shadow(0 0 15px rgba(79, 70, 229, 0.3))"
+                  "drop-shadow(0 0 15px rgba(99, 102, 241, 0.2))", 
+                  "drop-shadow(0 0 25px rgba(99, 102, 241, 0.5))",
+                  "drop-shadow(0 0 15px rgba(99, 102, 241, 0.2))"
                 ] : "none"
               }}
               transition={{
@@ -159,9 +169,9 @@ export default function Home() {
             {/* Floating Badge */}
             {isLoaded && (
               <motion.div 
-                className="absolute -bottom-4 -left-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 z-30"
+                className="absolute -bottom-4 -left-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 z-30"
                 initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1, y: [10, -10, 10] }} 
+                animate={{ opacity: 1, scale: 1, y: [8, -8, 8] }} 
                 transition={{ 
                   opacity: { duration: 0.5 },
                   scale: { type: "spring" },

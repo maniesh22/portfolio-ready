@@ -1,14 +1,147 @@
 @import "tailwindcss";
 
-/* ADD THIS SECTION */
+/* ========================================
+   Design System — Custom Properties
+   ======================================== */
 @layer base {
+  :root {
+    --color-accent: 99 102 241;       /* indigo-500 */
+    --color-accent-light: 129 140 248; /* indigo-400 */
+    --color-surface: 255 255 255;
+    --color-surface-elevated: 248 250 252;
+    --radius-card: 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-surface: 11 17 32;
+      --color-surface-elevated: 30 41 59;
+    }
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   html, body {
-    /* Apply the theme colors to the entire document root */
-    @apply bg-white text-slate-900 dark:bg-slate-900 dark:text-white;
+    @apply bg-white text-slate-900 dark:bg-[#0B1120] dark:text-slate-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Selection colors */
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.2);
+    color: inherit;
+  }
+
+  /* Scrollbar styling (WebKit browsers) */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
   }
 }
 
-/* reduced motion preference (Keep your existing code below) */
+/* ========================================
+   Utility Classes
+   ======================================== */
+@layer utilities {
+  /* Glassmorphism card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .glass-card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animated gradient text */
+  .gradient-text-animated {
+    background: linear-gradient(270deg, #6366f1, #8b5cf6, #a78bfa, #6366f1);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 6s ease infinite;
+  }
+
+  /* Glow border pulse */
+  .glow-border {
+    box-shadow: 0 0 15px -3px rgba(99, 102, 241, 0.3);
+    animation: glow-pulse 3s ease-in-out infinite;
+  }
+
+  /* Card shimmer effect on hover */
+  .card-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .card-shimmer:hover::after {
+    opacity: 1;
+    animation: shimmer 1.5s linear infinite;
+  }
+
+  /* Gradient divider line */
+  .gradient-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(99, 102, 241, 0.3) 30%,
+      rgba(139, 92, 246, 0.5) 50%,
+      rgba(99, 102, 241, 0.3) 70%,
+      transparent 100%
+    );
+  }
+}
+
+/* ========================================
+   Reduced Motion Preference
+   ======================================== */
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

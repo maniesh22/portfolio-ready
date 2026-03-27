@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PageTransition } from '../shared/PageTransition';
+import InViewReveal from '../shared/InViewReveal';
 
 // --- 1. CONFIGURATION: Tech Stack Icons & Colors ---
 const techConfig: Record<string, { logo: string; color: string }> = {
@@ -18,23 +19,22 @@ const techConfig: Record<string, { logo: string; color: string }> = {
   },
   "MVVM": { 
     logo: "", 
-    color: "#64748b" // Slate-500
+    color: "#64748b"
   },
   "Coroutines": { 
-    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg", // Part of Kotlin
+    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg",
     color: "#7F52FF" 
   },
   "Hilt": { 
-    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg", // Google library
+    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg",
     color: "#3DDC84" 
   },
   "Retrofit": { 
-    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-plain.svg", // Android library
+    logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-plain.svg",
     color: "#3DDC84" 
   }
 };
 
-// Helper to safely get config
 const getTechConfig = (tech: string) => techConfig[tech] || { logo: "", color: "#64748b" };
 
 // --- Types & Data ---
@@ -90,78 +90,92 @@ export default function Projects() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedProject = projectsData.find(p => p.id === selectedId);
 
+  // Keyboard support: close modal on Escape
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') setSelectedId(null);
+  }, []);
+
+  useEffect(() => {
+    if (selectedId) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = '';
+      };
+    }
+  }, [selectedId, handleKeyDown]);
+
   return (
     <PageTransition>
       <div className='max-w-5xl mx-auto pb-20'>
-        <h1 className='text-3xl font-bold mb-12 flex items-center gap-3'>
-          <span className='text-indigo-600'>🚀</span> Projects
-        </h1>
+        <InViewReveal direction="up">
+          <h1 className='text-3xl font-bold mb-12 flex items-center gap-3'>
+            <span className='text-indigo-600'>🚀</span> Projects
+          </h1>
+        </InViewReveal>
 
         {/* --- PROJECT GRID --- */}
         <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-          {projectsData.map((project) => (
-            <motion.div
-              key={project.id}
-              layoutId={`card-container-${project.id}`}
-              onClick={() => setSelectedId(project.id)}
-              
-              // FIX 1: Use explicit Hex codes instead of 'border-slate-200' 
-              // This prevents Tailwind from using 'oklch' which crashes Framer Motion.
-              className='bg-white dark:bg-slate-800 rounded-2xl p-6 cursor-pointer border border-[#e2e8f0] dark:border-[#334155] relative overflow-hidden group'
-              
-              whileHover={{ 
-                y: -8, 
-                scale: 1.02,
-                // FIX 2: Now we can safely animate the border color!
-                borderColor: project.color,
-                boxShadow: `0 20px 30px -10px ${project.color}40`, 
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
-                style={{ backgroundColor: project.color }}
-              />
-
-              <div className='flex justify-between items-start mb-4 relative z-10'>
-                <div className='p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-3xl'>
-                  {project.icon}
-                </div>
-                <motion.button 
-                  className='text-sm font-medium px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-colors'
-                >
-                  View Details
-                </motion.button>
-              </div>
-
-              <motion.h3 
-                layoutId={`title-${project.id}`} 
-                className='text-xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors'
+          {projectsData.map((project, index) => (
+            <InViewReveal key={project.id} direction="up" delay={index * 0.1}>
+              <motion.div
+                layoutId={`card-container-${project.id}`}
+                onClick={() => setSelectedId(project.id)}
+                className='bg-white dark:bg-slate-800/80 rounded-2xl p-6 cursor-pointer border border-[#e2e8f0] dark:border-[#334155] relative overflow-hidden group card-shimmer h-full'
+                whileHover={{ 
+                  y: -8, 
+                  scale: 1.02,
+                  borderColor: project.color,
+                  boxShadow: `0 20px 40px -10px ${project.color}30`, 
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                {project.title}
-              </motion.h3>
-              
-              <p className='text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4'>
-                {project.shortDesc}
-              </p>
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
+                  style={{ backgroundColor: project.color }}
+                />
 
-              {/* --- Grid Tech Stack with Icons --- */}
-              <div className='flex flex-wrap gap-2'>
-                {project.techStack.map(tech => {
-                  const { logo, color } = getTechConfig(tech);
-                  return (
-                    <span 
-                      key={tech} 
-                      className='flex items-center gap-1 text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-md font-medium border border-transparent'
-                      style={{ color: color }}
-                    >
-                      {logo && <img src={logo} alt="" className="w-3.5 h-3.5 object-contain" />}
-                      {tech}
-                    </span>
-                  );
-                })}
-              </div>
-            </motion.div>
+                <div className='flex justify-between items-start mb-4 relative z-10'>
+                  <div className='p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-3xl'>
+                    {project.icon}
+                  </div>
+                  <motion.button 
+                    className='text-sm font-medium px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:text-white transition-all duration-300'
+                  >
+                    View Details
+                  </motion.button>
+                </div>
+
+                <motion.h3 
+                  layoutId={`title-${project.id}`} 
+                  className='text-xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors'
+                >
+                  {project.title}
+                </motion.h3>
+                
+                <p className='text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4'>
+                  {project.shortDesc}
+                </p>
+
+                {/* Grid Tech Stack with Icons */}
+                <div className='flex flex-wrap gap-2'>
+                  {project.techStack.map(tech => {
+                    const { logo, color } = getTechConfig(tech);
+                    return (
+                      <span 
+                        key={tech} 
+                        className='flex items-center gap-1 text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-700/50 rounded-lg font-medium border border-transparent'
+                        style={{ color: color }}
+                      >
+                        {logo && <img src={logo} alt="" className="w-3.5 h-3.5 object-contain" loading="lazy" />}
+                        {tech}
+                      </span>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </InViewReveal>
           ))}
         </div>
 
@@ -175,7 +189,7 @@ export default function Projects() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedId(null)}
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                className="absolute inset-0 bg-slate-900/50 backdrop-blur-lg"
               />
 
               <motion.div
@@ -188,18 +202,22 @@ export default function Projects() {
               >
                 <button 
                   onClick={() => setSelectedId(null)}
-                  className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors z-20"
+                  className="absolute top-4 right-4 p-2 bg-slate-100/80 dark:bg-slate-700/80 backdrop-blur-sm rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors z-20"
+                  aria-label="Close modal"
                 >
                   <svg className="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
 
-                <div className="h-32 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative">
+                <div 
+                  className="h-36 flex items-center justify-center relative overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${selectedProject.color}20, ${selectedProject.color}10)` }}
+                >
                    <span className="text-6xl">{selectedProject.icon}</span>
                    <div 
-                     className="absolute inset-0 opacity-20 mix-blend-overlay" 
-                     style={{ background: `linear-gradient(to right, ${selectedProject.color}, transparent)` }}
+                     className="absolute inset-0 opacity-30" 
+                     style={{ background: `radial-gradient(circle at 70% 30%, ${selectedProject.color}30, transparent 70%)` }}
                    />
                 </div>
 
@@ -211,28 +229,28 @@ export default function Projects() {
                     {selectedProject.title}
                   </motion.h2>
 
-                  {/* --- Modal Tech Stack with Icons --- */}
+                  {/* Modal Tech Stack with Icons */}
                   <div className="flex flex-wrap gap-2 mb-6">
                     {selectedProject.techStack.map(tech => {
                       const { logo, color } = getTechConfig(tech);
                       return (
                         <motion.span 
                           key={tech} 
-                          className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-md cursor-default bg-white dark:bg-slate-800 dark:border-slate-700 shadow-sm'
+                          className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-lg cursor-default bg-white dark:bg-slate-800 dark:border-slate-700 shadow-sm'
                           style={{ 
                             borderColor: `${color}40`, 
                             color: color,
-                            boxShadow: `0 2px 10px -2px ${color}20`
+                            boxShadow: `0 2px 10px -2px ${color}15`
                           }}
                           whileHover={{ 
                             scale: 1.05,
-                            boxShadow: `0 0 15px ${color}50`, 
+                            boxShadow: `0 0 15px ${color}40`, 
                             borderColor: color,
-                            backgroundColor: `${color}10`
+                            backgroundColor: `${color}08`
                           }}
                           transition={{ type: "spring", stiffness: 400, damping: 12 }}
                         >
-                           {logo && <img src={logo} alt="" className="w-4 h-4 object-contain" />}
+                           {logo && <img src={logo} alt="" className="w-4 h-4 object-contain" loading="lazy" />}
                            {tech}
                         </motion.span>
                       );
@@ -252,7 +270,7 @@ export default function Projects() {
                             key={idx}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + (idx * 0.1) }}
+                            transition={{ delay: 0.2 + (idx * 0.08) }}
                             className="flex items-start"
                           >
                             <svg className="w-5 h-5 mr-3 mt-1 flex-shrink-0" fill="none" stroke={selectedProject.color} viewBox="0 0 24 24">
@@ -270,8 +288,8 @@ export default function Projects() {
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold shadow-lg transition-transform"
-                        style={{ backgroundColor: selectedProject.color }}
-                        whileHover={{ scale: 1.05, boxShadow: `0 10px 20px -5px ${selectedProject.color}60` }}
+                        style={{ background: `linear-gradient(135deg, ${selectedProject.color}, ${selectedProject.color}cc)` }}
+                        whileHover={{ scale: 1.05, boxShadow: `0 10px 25px -5px ${selectedProject.color}50` }}
                         whileTap={{ scale: 0.95 }}
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

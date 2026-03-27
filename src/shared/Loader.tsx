@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // --- Visual Component ---
-const LoaderVisual = () => {
+const LoaderVisual = React.memo(() => {
   return (
     <motion.div
       key="loader"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-slate-900"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-[#0B1120]"
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -19,7 +19,6 @@ const LoaderVisual = () => {
         exit={{ scale: 1.1, opacity: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        {/* Changed from standard svg to motion.svg to support filter animation */}
         <motion.svg
           viewBox="0 0 100 100"
           fill="none"
@@ -27,10 +26,9 @@ const LoaderVisual = () => {
           className="w-full h-full text-slate-900 dark:text-white"
           role="img"
           aria-label="Loading Logo"
-          
-          // 1. Add the Glowing Shadow Effect (Auto-playing)
+          shapeRendering="geometricPrecision"
           initial={{ filter: "drop-shadow(0px 0px 0px rgba(0,0,0,0))" }}
-          animate={{ filter: "drop-shadow(0px 0px 20px rgba(0, 166, 255, 0.8))" }}
+          animate={{ filter: "drop-shadow(0px 0px 20px rgba(99, 102, 241, 0.8))" }}
           transition={{ duration: 1.2, ease: "easeInOut" }}
         >
           {/* Hexagon Path */}
@@ -40,8 +38,6 @@ const LoaderVisual = () => {
             strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
-            
-            // 2. Drawing Animation (0 -> 1) matched with the shadow
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 1.5, ease: "easeInOut" }}
@@ -52,7 +48,7 @@ const LoaderVisual = () => {
             x="50"
             y="62"
             textAnchor="middle"
-            fontFamily="sans-serif"
+            fontFamily="'Inter', sans-serif"
             fontSize="42"
             fontWeight="bold"
             fill="currentColor"
@@ -64,11 +60,21 @@ const LoaderVisual = () => {
           </motion.text>
         </motion.svg>
       </motion.div>
+
+      {/* Progress bar at bottom */}
+      <motion.div
+        className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"
+        initial={{ width: '0%' }}
+        animate={{ width: '100%' }}
+        transition={{ duration: 1.8, ease: 'easeInOut' }}
+      />
     </motion.div>
   )
-}
+})
 
-// --- Logic Component (No Changes) ---
+LoaderVisual.displayName = 'LoaderVisual'
+
+// --- Logic Component ---
 interface LoaderProps {
   children: React.ReactNode
 }
@@ -77,7 +83,6 @@ export const Loader: React.FC<LoaderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Keep exactly 2 seconds
     const timer = setTimeout(() => {
       setIsLoading(false)
     }, 2000)

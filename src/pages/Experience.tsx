@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import InViewReveal from '../shared/InViewReveal'
 
-// ... (Keep the existing skillData and imports) ...
 const skillData: Record<string, { color: string; logo: string }> = {
   "React": { 
     color: "#61DAFB", 
@@ -45,7 +45,7 @@ export default function Experience() {
       location: 'Kochi, Kerala, India',
       period: 'Jan 2024 – Present',
       description: [
-        'Led full-stack development for IBM’s MDM/Match360 Quality Dashboard using React/Redux, Java Spring Boot, Python, and MongoDB—improving load times by 25%.',
+        "Led full-stack development for IBM's MDM/Match360 Quality Dashboard using React/Redux, Java Spring Boot, Python, and MongoDB—improving load times by 25%.",
         'Architected and containerized microservices with Docker/Kubernetes and implemented CI pipelines (Jenkins/Travis) for unique PR deployments, reducing release time by 40%.',
         'Built automated deployment tooling for Linux VMs and a PR bot, significantly increasing developer productivity.',
         'Developed service health-monitoring and self-healing mechanisms using API-key driven automation to ensure high availability.',
@@ -55,7 +55,6 @@ export default function Experience() {
     },
   ]
 
-  // ... (Keep existing variants) ...
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.3 } }
@@ -63,7 +62,7 @@ export default function Experience() {
 
   const itemVariants = {
     hidden: { opacity: 0, x: -30 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } }
   }
 
   const getSkill = (skillName: string) => skillData[skillName] || skillData["default"];
@@ -76,37 +75,51 @@ export default function Experience() {
       variants={containerVariants}
       className='max-w-4xl mx-auto'
     >
-      <h1 className='text-3xl font-bold mb-12 flex items-center gap-3'>
-        <span className='text-indigo-600'>💼</span> Experience
-      </h1>
+      <InViewReveal direction="up">
+        <h1 className='text-3xl font-bold mb-12 flex items-center gap-3'>
+          <span className='text-indigo-600'>💼</span> Experience
+        </h1>
+      </InViewReveal>
 
-      <div className='relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 md:ml-6 space-y-16'>
+      <div className='relative ml-3 md:ml-6 space-y-16'>
+        {/* Animated timeline line */}
+        <motion.div
+          className="absolute top-0 bottom-0 left-0 w-0.5 bg-gradient-to-b from-indigo-500 via-purple-500 to-indigo-300 dark:to-indigo-800 origin-top"
+          initial={{ scaleY: 0 }}
+          whileInView={{ scaleY: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+        />
+
         {jobs.map((job, index) => (
           <motion.div 
             key={index} 
             variants={itemVariants}
             className='relative pl-8 md:pl-12 group'
           >
-            {/* Timeline Dot */}
+            {/* Timeline Dot — Pulsing */}
             <motion.span 
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
-              className='absolute -left-[11px] top-1 h-6 w-6 rounded-full border-4 border-white dark:border-slate-900 bg-indigo-600 ring-4 ring-indigo-50 dark:ring-indigo-900/30 group-hover:scale-125 transition-transform duration-300' 
-            />
+              className='absolute -left-[11px] top-1 h-6 w-6 rounded-full border-4 border-white dark:border-[#0B1120] bg-indigo-600 ring-4 ring-indigo-100 dark:ring-indigo-900/30 group-hover:scale-125 transition-transform duration-300' 
+            >
+              {/* Pulse ring */}
+              <span className="absolute inset-0 rounded-full bg-indigo-500 animate-ping opacity-20" />
+            </motion.span>
             
-            {/* Header Content ... (Same as before) ... */}
+            {/* Header Content */}
             <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6'>
               <div>
-                <h3 className='text-2xl font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors duration-300'>
+                <h3 className='text-2xl font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300'>
                   {job.role}
                 </h3>
-                <div className='text-lg font-semibold text-slate-700 dark:text-slate-300'>
+                <div className='text-lg font-semibold text-slate-600 dark:text-slate-300'>
                   {job.company}
                 </div>
               </div>
               <div className='flex flex-col items-start sm:items-end mt-2 sm:mt-0 gap-1'>
-                <span className='text-sm font-medium text-white bg-indigo-600 px-3 py-1 rounded-full shadow-sm shadow-indigo-200 dark:shadow-none'>
+                <span className='text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-1.5 rounded-full shadow-sm'>
                   {job.period}
                 </span>
                 <span className='text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1'>
@@ -116,30 +129,18 @@ export default function Experience() {
               </div>
             </div>
 
-            {/* --- FIXED BULLET POINTS SECTION --- */}
-            <ul className='space-y-4 mb-8'>
+            {/* Bullet Points — Cleaned up will-change */}
+            <ul className='space-y-3 mb-8'>
               {job.description.map((point, i) => (
                 <motion.li 
                   key={i} 
-                  // FIX 1: Add 'relative' so z-index works.
-                  // FIX 2: Add 'backface-visibility-hidden' (optional via style) to reduce text jitter.
                   className='relative flex items-start rounded-xl p-3 -ml-3 cursor-default border border-transparent'
-                  
-                  // Initial state ensures z-index is defined
-                  initial={{ zIndex: 1, scale: 1 }}
-                  
                   whileHover={{ 
-                    scale: 1.02, 
-                    zIndex: 10, // FIX 3: Bring hovered item to front so it doesn't push/clip neighbors
-                    backgroundColor: "rgba(99, 102, 241, 0.05)", 
+                    scale: 1.01, 
+                    backgroundColor: "rgba(99, 102, 241, 0.04)", 
                     borderColor: "rgba(99, 102, 241, 0.1)",
-                    boxShadow: "0 10px 30px -10px rgba(79, 70, 229, 0.2)"
                   }}
-                  // Smooth spring transition
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  
-                  // Optimization: Tells browser to expect changes, reducing repaint glitches
-                  style={{ willChange: "transform" }}
                 >
                   <svg 
                     className="w-5 h-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" 
@@ -156,20 +157,20 @@ export default function Experience() {
               ))}
             </ul>
 
-            {/* --- Skills Section (Same as before) --- */}
+            {/* Skills Section */}
             <div className='flex flex-wrap gap-3'>
               {job.skills.map(skillName => {
                 const { color, logo } = getSkill(skillName);
                 return (
                   <motion.span 
                     key={skillName} 
-                    className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-md cursor-default bg-white dark:bg-slate-800 dark:border-slate-700 shadow-sm'
+                    className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-lg cursor-default bg-white dark:bg-slate-800/80 dark:border-slate-700 shadow-sm'
                     style={{ color: color, borderColor: `${color}30` }} 
                     whileHover={{ 
                       scale: 1.05,
-                      boxShadow: `0 0 15px ${color}50`, 
+                      boxShadow: `0 0 15px ${color}40`, 
                       borderColor: color,
-                      backgroundColor: `${color}10`
+                      backgroundColor: `${color}08`
                     }}
                     transition={{ type: "spring", stiffness: 400, damping: 12 }}
                   >

@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react'
-import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, Suspense } from 'react'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from 'framer-motion';
-
 
 import Home from './pages/Home'
 import About from './pages/About'
 import Experience from './pages/Experience'
 import Projects from './pages/Projects'
 import Contact from './pages/Contact'
-import Resume from './pages/Resume'
 
 import { Loader } from './shared/Loader'
 import { Logo } from './shared/Logo'
 import Footer from './components/Footer';
 
-// --- Sub-Component: The Main Scrollable Page ---
-const LandingPage = () => {
+// Lazy-load the Resume page (only loaded when navigated to)
+const Resume = React.lazy(() => import('./pages/Resume'));
+
+// --- Sub-Component: The Main Scrollable Page (Memoized) ---
+const LandingPage = React.memo(() => {
   return (
     <div className='flex flex-col flex-grow'>
       <section id="home" className="min-h-screen pt-32 px-6 container mx-auto">
@@ -35,7 +36,20 @@ const LandingPage = () => {
       </section>
     </div>
   )
-}
+})
+
+LandingPage.displayName = 'LandingPage'
+
+// --- Mobile menu nav link ---
+const MobileNavLink = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <motion.button
+    onClick={onClick}
+    className="w-full text-left px-6 py-3 text-lg font-medium text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors rounded-lg"
+    whileTap={{ scale: 0.98 }}
+  >
+    {label}
+  </motion.button>
+)
 
 export default function App() {
   const navigate = useNavigate();
@@ -46,20 +60,19 @@ export default function App() {
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // --- Scroll & Header Logic ---
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
     setScrolled(latest > 5);
 
-    // Hide header on scroll down, show on scroll up
     if (latest > previous && latest > 15) {
       setHidden(true);
     } else {
       setHidden(false);
     }
 
-    // Determine Active Section (Only relevant on Landing Page)
     if (location.pathname === '/') {
       const sections = ['home', 'about', 'experience', 'projects', 'contact'];
       for (const section of sections) {
@@ -75,12 +88,12 @@ export default function App() {
     }
   });
 
-  // --- Smooth Scroll Function ---
-  const scrollToSection = (id: string) => {
-    // If we are NOT on home page (e.g., on /resume), go home first
+  // --- Smooth Scroll Function (memoized) ---
+  const scrollToSection = useCallback((id: string) => {
+    setMobileMenuOpen(false);
+    
     if (location.pathname !== '/') {
       navigate('/');
-      // Wait for navigation to complete before scrolling
       setTimeout(() => {
         const element = document.getElementById(id);
         if (element) {
@@ -91,7 +104,6 @@ export default function App() {
         }
       }, 100);
     } else {
-      // Standard scroll if already on home
       const element = document.getElementById(id);
       if (element) {
         const headerOffset = 80;
@@ -100,29 +112,33 @@ export default function App() {
         window.scrollTo({ top: offsetPosition, behavior: "smooth" });
       }
     }
-  };
+  }, [location.pathname, navigate]);
 
   const getLinkClass = (id: string) => {
-    const base = "cursor-pointer transition-all duration-300 relative px-1 ";
-    // Only show active state if we are actually on the home page
+    const base = "cursor-pointer transition-all duration-300 relative px-1 py-1 ";
     const isActive = activeSection === id && location.pathname === '/';
     
-    const active = "text-indigo-600 font-bold scale-105";
-    const inactive = "hover:text-indigo-600 text-slate-600 dark:text-slate-300";
+    const active = "text-indigo-600 dark:text-indigo-400 font-bold";
+    const inactive = "hover:text-indigo-600 dark:hover:text-indigo-400 text-slate-600 dark:text-slate-300";
     
     return isActive ? `${base} ${active}` : `${base} ${inactive}`;
   };
 
+  const navItems = ['about', 'experience', 'projects', 'contact'] as const;
+
   return (
-    <div className='min-h-screen'>
+    <div className='min-h-screen bg-white dark:bg-[#0B1120]'>
+      {/* Accent branding strip at very top */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
+
       <Loader>
         <motion.header
           variants={{ visible: { y: 0 }, hidden: { y: "-100%" } }}
           animate={hidden ? "hidden" : "visible"}
           transition={{ duration: 0.35, ease: "easeInOut" }}
-          className={`fixed top-0 left-0 right-0 z-40 p-6 transition-all duration-300 ${
+          className={`fixed top-[2px] left-0 right-0 z-40 p-5 transition-all duration-500 ${
             scrolled 
-              ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm' 
+              ? 'bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-xl shadow-sm border-b border-slate-200/50 dark:border-slate-700/30' 
               : 'bg-transparent'
           }`}
         >
@@ -131,54 +147,95 @@ export default function App() {
                <Logo />
             </div>
 
-            <div className='flex items-center space-x-6 text-sm font-medium'>
-              <button onClick={() => scrollToSection('about')} className={getLinkClass('about')}>
-                About
-                {activeSection === 'about' && location.pathname === '/' && (
-                  <motion.span layoutId="active-dot" className="absolute -bottom-2 left-0 right-0 h-1 bg-indigo-600 rounded-full" />
-                )}
-              </button>
-              
-              <button onClick={() => scrollToSection('experience')} className={getLinkClass('experience')}>
-                Experience
-                {activeSection === 'experience' && location.pathname === '/' && (
-                  <motion.span layoutId="active-dot" className="absolute -bottom-2 left-0 right-0 h-1 bg-indigo-600 rounded-full" />
-                )}
-              </button>
-              
-              <button onClick={() => scrollToSection('projects')} className={getLinkClass('projects')}>
-                Projects
-                {activeSection === 'projects' && location.pathname === '/' && (
-                  <motion.span layoutId="active-dot" className="absolute -bottom-2 left-0 right-0 h-1 bg-indigo-600 rounded-full" />
-                )}
-              </button>
-              
-              <button onClick={() => scrollToSection('contact')} className={getLinkClass('contact')}>
-                Contact
-                {activeSection === 'contact' && location.pathname === '/' && (
-                  <motion.span layoutId="active-dot" className="absolute -bottom-2 left-0 right-0 h-1 bg-indigo-600 rounded-full" />
-                )}
-              </button>
+            {/* Desktop navigation */}
+            <div className='hidden md:flex items-center space-x-8 text-sm font-medium'>
+              {navItems.map((id) => (
+                <button key={id} onClick={() => scrollToSection(id)} className={getLinkClass(id)}>
+                  <span className="capitalize">{id}</span>
+                  {activeSection === id && location.pathname === '/' && (
+                    <motion.span
+                      layoutId="active-dot"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              ))}
             </div>
+
+            {/* Mobile hamburger button */}
+            <motion.button
+              className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              whileTap={{ scale: 0.9 }}
+              aria-label="Toggle menu"
+            >
+              <div className="w-5 h-4 flex flex-col justify-between">
+                <motion.span
+                  className="w-full h-0.5 bg-slate-700 dark:bg-slate-300 rounded-full origin-left"
+                  animate={mobileMenuOpen ? { rotate: 45, y: -1 } : { rotate: 0, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+                <motion.span
+                  className="w-full h-0.5 bg-slate-700 dark:bg-slate-300 rounded-full"
+                  animate={mobileMenuOpen ? { opacity: 0, x: -10 } : { opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                />
+                <motion.span
+                  className="w-full h-0.5 bg-slate-700 dark:bg-slate-300 rounded-full origin-left"
+                  animate={mobileMenuOpen ? { rotate: -45, y: 1 } : { rotate: 0, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </motion.button>
           </nav>
+
+          {/* Mobile menu dropdown */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="md:hidden mt-4 overflow-hidden"
+              >
+                <div className="glass-card rounded-xl p-2 space-y-1">
+                  {navItems.map((id) => (
+                    <MobileNavLink
+                      key={id}
+                      label={id.charAt(0).toUpperCase() + id.slice(1)}
+                      onClick={() => scrollToSection(id)}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.header>
 
         {/* --- ROUTING --- */}
         <main className='flex-grow'>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-              {/* Route for the Main Scrollable Landing Page */}
               <Route path="/" element={<LandingPage />} />
-              
-              {/* Route for the new Resume Page */}
-              <Route path="/resume" element={<Resume />} />
+              <Route path="/resume" element={
+                <Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center">
+                    <motion.div
+                      className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                    />
+                  </div>
+                }>
+                  <Resume />
+                </Suspense>
+              } />
             </Routes>
           </AnimatePresence>
         </main>
         
-        {/* <footer className='p-6 text-center text-sm border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900'>
-          © {new Date().getFullYear()} Manish Prajapati
-        </footer> */}
         <Footer />
       </Loader>
     </div>
