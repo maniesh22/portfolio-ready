@@ -92,18 +92,7 @@ export default function App() {
   const scrollToSection = useCallback((id: string) => {
     setMobileMenuOpen(false);
     
-    if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element) {
-          const headerOffset = 80;
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-        }
-      }, 100);
-    } else {
+    const performScroll = () => {
       const element = document.getElementById(id);
       if (element) {
         const headerOffset = 80;
@@ -111,6 +100,13 @@ export default function App() {
         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
         window.scrollTo({ top: offsetPosition, behavior: "smooth" });
       }
+    };
+
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(performScroll, 100);
+    } else {
+      setTimeout(performScroll, 300);
     }
   }, [location.pathname, navigate]);
 
